@@ -31,11 +31,11 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	normal_distribution<double> dist_y(y, std[1]);
 	normal_distribution<double> dist_theta(theta, std[2]);
 
+	// Set number of particles
 	num_particles = 50;
-	
+	// Resize vector of weights to match number of particles
 	weights.resize(num_particles, 1.0f / num_particles);
-	//fill(weights.begin(), weights.end(), 1 / num_particles);
-
+	// Resize vector of particles and initialize
 	particles.resize(num_particles);
 	for (int i = 0; i < num_particles; i++) {
 		Particle p = {
@@ -49,7 +49,6 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 			vector<double>(),
 		};
 		particles[i] = p;
-		// cout << '\t' << p.id << '\t' << p.x << '\t' << p.y << '\t' << p.theta << '\t' << p.weight << endl;
 	}
 	is_initialized = true;
 }
@@ -63,7 +62,6 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	normal_distribution<double> dist_x(0.0, std_pos[0]);
 	normal_distribution<double> dist_y(0.0, std_pos[1]);
 	normal_distribution<double> dist_theta(0.0, std_pos[2]);
-	// cout << "Prediction: " << endl;
 
 	for (int i = 0; i < particles.size(); ++i) {
 		Particle p = particles[i];
@@ -82,8 +80,6 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 		p.y += dist_y(gen);
 		p.theta += dist_theta(gen);
 		particles[i] = p;
-		// cout << '\t' << p.id << '\t' << p.x << '\t' << p.y << '\t' << p.theta << '\t' << p.weight << endl;
-		//cout << "pid = " << particles[i].id << endl;
 	}
 }
 
@@ -130,9 +126,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
 
-	// cout << "Update Weights: " << endl;
 	for (int i = 0; i < num_particles; ++i) {
-
 		// Transform observations to the map's coordinate
 		std::vector<LandmarkObs> obsInMapCoordinate;
 		for (int j = 0; j < observations.size(); ++j) {
@@ -157,9 +151,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 				lm.y = map_landmarks.landmark_list[j].y_f;
 				landmark_predict.push_back(lm);
 			}
-			//cout << "diff_x = " << diff_x << "   diff_y = " << diff_y << endl;
 		}
-		// cout << "# landmarks in range = " << landmark_predict.size() << endl;
 		// Associate observations with landmarks on map
 		dataAssociation(landmark_predict, obsInMapCoordinate);
 
@@ -172,16 +164,10 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			double dx = obs.x - lm_asso.x;
 			double dy = obs.y - lm_asso.y;
 			double gauss_expnt = dx*dx / (2 * std_landmark[0] * std_landmark[0]) + dy*dy / (2 * std_landmark[1] * std_landmark[1]);
-			//cout << "\t\t obs id = " << obs.id << "\t\t obs x = " << obs.x << "\t\t obs y = " << obs.y << endl;
-			//cout << "\t\t lmk id = " << lm_asso.id << "\t\t lmk x = " << lm_asso.x << "\t\t lmk y = " << lm_asso.y << endl;
-			// cout << "\t\tdx=" << dx << "\tdy=" << dy << endl;
 			total_prob *= exp(-gauss_expnt) / gauss_norm;
-			// cout << "\t\t dx = " << dx << "   dy = " << dy << "   total_prob = " << total_prob  << endl;
-
 		}
 		particles[i].weight = total_prob;
 		weights[i] = total_prob;
-		// cout << "\t id = " << particles[i].id << "   x = " << particles[i].x << "   y = " << particles[i].y << "   theta = " << particles[i].theta << "   weights = " << particles[i].weight << endl;
 	}
 }
 
@@ -190,15 +176,7 @@ void ParticleFilter::resample() {
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
 
-	// no need to normalize when using discrete_distribution 
-	//// cout << "Resample : " << endl;
-	//double sum_weights = accumulate(weights.begin(), weights.end(), 0.0f);
-
-	//// cout << "  sum_weight = " << sum_weights << endl;
-	//for (int i = 0; i < weights.size(); ++i) {
-	//	weights[i] /= sum_weights;
-	//}
-
+	// Create discrete distribution based on weights of particles
 	std::discrete_distribution<int> dist_p(weights.begin(), weights.end());
 	std::vector<Particle> new_particles;
 	for (unsigned i = 0; i < num_particles; i++)
